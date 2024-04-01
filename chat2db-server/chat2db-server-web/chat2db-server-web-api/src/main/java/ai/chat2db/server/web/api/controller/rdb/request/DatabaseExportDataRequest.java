@@ -16,4 +16,6 @@ import lombok.NoArgsConstructor;
 public class DatabaseExportDataRequest extends DataSourceBaseRequest {
     @NotNull
     private String exportType;
+    @NotNull
+    private Boolean continueOnError;
 }

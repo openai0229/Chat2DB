@@ -26,13 +26,6 @@ public class OracleDBManage extends DefaultDBManage implements DBManage {
     private static String PROCEDURE_DDL_SQL = "SELECT DBMS_METADATA.GET_DDL('PROCEDURE', object_name) as ddl FROM all_procedures WHERE owner = '%s' AND object_name = '%s'";
     private static String TRIGGER_DDL_SQL = "SELECT DBMS_METADATA.GET_DDL('TRIGGER', trigger_name) AS ddl FROM all_triggers WHERE owner = '%s' AND trigger_name = '%s'";
     private static String FUNCTION_DDL_SQL = "SELECT DBMS_METADATA.GET_DDL('FUNCTION', object_name) as ddl  FROM all_procedures WHERE owner = '%s' AND object_name = '%s'";
-
-    @Override
-    public String exportDatabaseData(Connection connection, String databaseName, String schemaName, String tableName) throws SQLException {
-        StringBuilder sqlBuilder = new StringBuilder();
-        exportTableData(connection, tableName, sqlBuilder);
-        return sqlBuilder.toString();
-    }
     public String exportDatabase(Connection connection, String databaseName, String schemaName, boolean containData) throws SQLException {
         StringBuilder sqlBuilder = new StringBuilder();
         exportTables(connection, schemaName, sqlBuilder, containData);
@@ -100,7 +93,6 @@ public class OracleDBManage extends DefaultDBManage implements DBManage {
                     if (Objects.isNull(columnValue)) {
                         sqlBuilder.append("NULL");
                     } else if (metaData.getColumnTypeName(i).equalsIgnoreCase("DATE")) {
-                        // 处理日期值格式
                         columnValue = "TO_DATE('" + columnValue + "', 'YYYY-MM-DD HH24:MI:SS')";
                         sqlBuilder.append(columnValue);
                     } else {

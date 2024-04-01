@@ -15,4 +15,5 @@ public class DatabaseExportDataParam {
     private String databaseName;
     private String schemaName;
     private String exportType;
+    private Boolean continueOnError;
 }
