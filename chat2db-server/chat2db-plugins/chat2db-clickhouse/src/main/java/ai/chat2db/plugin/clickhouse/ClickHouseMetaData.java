@@ -15,10 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static ai.chat2db.spi.util.SortUtils.sortDatabase;
@@ -41,9 +38,31 @@ public class ClickHouseMetaData extends DefaultMetaService implements MetaData {
             = "SELECT create_table_query from system.`tables` WHERE `database`='%s' and name='%s'";
     private List<String> systemDatabases = Arrays.asList("information_schema", "system");
     public static final String FUNCTION_SQL = "SELECT name,create_query as ddl from system.functions where origin='SQLUserDefined'";
+    private static String SELECT_TABLE_SQL = "SELECT name,comment from system.`tables` WHERE `database`='%s'";
 
     public static String format(String tableName) {
         return "`" + tableName + "`";
+    }
+
+
+    @Override
+    public List<Schema> schemas(Connection connection, String databaseName) {
+        return Collections.emptyList();
+    }
+
+
+    @Override
+    public List<Table> tables(Connection connection, String databaseName, String schemaName, String tableName) {
+        return SQLExecutor.getInstance().execute(connection, String.format(SELECT_TABLE_SQL, databaseName), resultSet -> {
+            ArrayList<Table> tables = new ArrayList<>();
+            while (resultSet.next()) {
+                Table table = new Table();
+                table.setName(resultSet.getString("name"));
+                table.setComment(resultSet.getString("comment"));
+                tables.add(table);
+            }
+            return tables;
+        });
     }
 
     @Override

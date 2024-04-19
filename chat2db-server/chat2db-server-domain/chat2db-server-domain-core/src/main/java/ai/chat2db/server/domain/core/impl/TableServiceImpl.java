@@ -36,11 +36,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static ai.chat2db.server.domain.core.cache.CacheKey.getColumnKey;
 import static ai.chat2db.server.domain.core.cache.CacheKey.getTableKey;
@@ -217,7 +216,7 @@ public class TableServiceImpl implements TableService {
             return null;
         }
         return table.getColumnList().stream().filter(tableColumn ->
-                        tableColumn.getPrimaryKey() != null && tableColumn.getPrimaryKey())
+                                                             tableColumn.getPrimaryKey() != null && tableColumn.getPrimaryKey())
                 .collect(Collectors.toList());
     }
 
@@ -422,26 +421,24 @@ public class TableServiceImpl implements TableService {
         String key = getTableKey(dataSourceId, databaseName, schemaName);
 
         Connection connection = Chat2DBContext.getConnection();
-        long n = 0;
-        try (ResultSet resultSet = connection.getMetaData().getTables(databaseName, schemaName, null,
-                new String[]{"TABLE", "SYSTEM TABLE"})) {
-            List<TableCacheDO> cacheDOS = new ArrayList<>();
-            while (resultSet.next()) {
+        MetaData metaData = Chat2DBContext.getMetaData();
+        List<Table> tables = metaData.tables(connection, databaseName, schemaName, null);
+        if (tables.isEmpty()) {
+            return 0;
+        }
+        List<List<Table>> tableLists = batch(tables, 500);
+        tableLists.forEach(tableList -> {
+            List<TableCacheDO> cacheDOS = tableList.stream().map(table -> {
                 TableCacheDO tableCacheDO = new TableCacheDO();
                 tableCacheDO.setDatabaseName(databaseName);
                 tableCacheDO.setSchemaName(schemaName);
-                tableCacheDO.setTableName(resultSet.getString("TABLE_NAME"));
-                tableCacheDO.setExtendInfo(resultSet.getString("REMARKS"));
+                tableCacheDO.setTableName(table.getName());
+                tableCacheDO.setExtendInfo(table.getComment());
                 tableCacheDO.setDataSourceId(dataSourceId);
                 tableCacheDO.setVersion(version);
                 tableCacheDO.setKey(key);
-                cacheDOS.add(tableCacheDO);
-                if (cacheDOS.size() >= 500) {
-                    getTableCacheMapper().batchInsert(cacheDOS);
-                    cacheDOS = new ArrayList<>();
-                }
-                n++;
-            }
+                return tableCacheDO;
+            }).collect(Collectors.toList());
             if (!CollectionUtils.isEmpty(cacheDOS)) {
                 getTableCacheMapper().batchInsert(cacheDOS);
             }
@@ -455,10 +452,14 @@ public class TableServiceImpl implements TableService {
                 q.eq(TableCacheDO::getSchemaName, schemaName);
             }
             getTableCacheMapper().delete(q);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return n;
+        });
+        return tableLists.size();
+    }
+    private static <T> List<List<T>> batch(List<T> collection, int batchSize) {
+        int collectionSize = collection.size();
+        return IntStream.range(0, (collectionSize + batchSize - 1) / batchSize)
+                .mapToObj(i -> collection.subList(i * batchSize, Math.min((i + 1) * batchSize, collectionSize)))
+                .collect(Collectors.toList());
     }
 
     private Long getLock(Long dataSourceId, String databaseName, String schemaName, TableCacheVersionDO versionDO) {
@@ -540,8 +541,8 @@ public class TableServiceImpl implements TableService {
         String tableColumnKey = getColumnKey(param.getDataSourceId(), param.getDatabaseName(), param.getSchemaName(), param.getTableName());
         MetaData metaSchema = Chat2DBContext.getMetaData();
         return CacheManage.getList(tableColumnKey, TableColumn.class,
-                (key) -> param.isRefresh(), (key) ->
-                        metaSchema.columns(Chat2DBContext.getConnection(), param.getDatabaseName(), param.getSchemaName(), param.getTableName()));
+                                   (key) -> param.isRefresh(), (key) ->
+                                           metaSchema.columns(Chat2DBContext.getConnection(), param.getDatabaseName(), param.getSchemaName(), param.getTableName()));
     }
 
     @Override
