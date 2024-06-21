@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * @author: zgq
  * @date: 2024年06月03日 23:21
- */  // TODO: 1.空间数据类型 2.XML数据类型 3.动态类型数据 4.ANSI、DB2 和 SQL/DS 数据
+ */  // TODO: 1.空间数据类型 2.BFILE外部文件  3.动态类型数据
 public class OracleValueProcessorFactory {
 
     private static final Map<String, DefaultValueProcessor> PROCESSOR_MAP;
@@ -34,7 +34,9 @@ public class OracleValueProcessorFactory {
                 //number
                 Map.entry(OracleColumnTypeEnum.NUMBER.name(), new OracleNumberProcessor()),
                 //blob
-                Map.entry(OracleColumnTypeEnum.BLOB.name(), new OracleBlobProcessor())
+                Map.entry(OracleColumnTypeEnum.BLOB.name(), new OracleBlobProcessor()),
+                //xml
+                Map.entry("SYS.XMLTYPE", new OracleXmlValueProcessor())
         );
 
     }

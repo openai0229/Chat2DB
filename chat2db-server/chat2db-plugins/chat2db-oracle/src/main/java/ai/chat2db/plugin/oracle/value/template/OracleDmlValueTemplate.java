@@ -15,4 +15,6 @@ public class OracleDmlValueTemplate {
 
     public static final String INTEGER_YEAR_TO_MONTH_TEMPLATE = "INTERVAL '%s' YEAR(%d) TO MONTH";
     public static final String INTEGER_DAY_TO_SECOND_TEMPLATE = "INTERVAL '%s' DAY(%d) TO SECOND(%d)";
+
+    public static final String XML_TEMPLATE = "XMLType('%s')";
 }
